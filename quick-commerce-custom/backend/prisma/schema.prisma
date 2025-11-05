@@ -1,0 +1,46 @@
+datasource db { provider = "postgresql"; url = env("DATABASE_URL") }
+generator client { provider = "prisma-client-js" }
+
+model Order {
+  id           String       @id @default(cuid())
+  userId       String?
+  status       OrderStatus  @default(PENDING)
+  total        Int
+  paymentStatus PaymentStatus @default(PENDING)
+  createdAt    DateTime     @default(now())
+  shipment     Shipment?
+}
+
+model Shipment {
+  id        String     @id @default(cuid())
+  orderId   String?
+  carrier   Carrier
+  awb       String     @unique
+  mode      ShipmentMode @default(HYPERLOCAL)
+  status    ShipStatus @default(CREATED)
+  eta       DateTime?
+  lastLat   Float?
+  lastLng   Float?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  events    ShipmentEvent[]
+  order     Order?     @relation(fields: [orderId], references: [id])
+}
+
+model ShipmentEvent {
+  id          String   @id @default(cuid())
+  shipmentId  String
+  status      ShipStatus
+  raw         Json
+  happenedAt  DateTime @default(now())
+  shipment    Shipment @relation(fields: [shipmentId], references: [id])
+}
+
+enum OrderStatus { PENDING CONFIRMED FULFILLED CANCELLED }
+enum PaymentStatus { PENDING PAID FAILED REFUNDED }
+enum ShipmentMode { HYPERLOCAL SURFACE }
+enum Carrier { PORTER SHADOWFAX DELHIVERY BORZO }
+enum ShipStatus {
+  CREATED ACCEPTED ASSIGNED PICKED_UP IN_TRANSIT
+  OUT_FOR_DELIVERY DELIVERED FAILED CANCELLED
+}
